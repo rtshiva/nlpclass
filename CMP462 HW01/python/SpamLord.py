@@ -3,8 +3,13 @@ import os
 import re
 import pprint
 
-my_first_pat = '(\w+)@(\w+).edu'
-
+my_first_pat = '([\w\.]+)\s*'   \
+    '(@|\sat\s|where)\s*' \
+    '((\w+)\s*(\.| |;)\s*)?' \
+    '(\w+)\s*' \
+    '(\.| |;)\s*' \
+    '(edu|com)\W'  # final com or edu string
+phone = '\(?(\d{3})\)?(-|\.|\s)?(\d{3})(-|\.|\s)(\d{4})\D'
 """
 TODO
 This function takes in a filename along with the file object (actually
@@ -26,15 +31,43 @@ NOTE: You shouldn't need to worry about this, but just so you know, the
 sure you check the StringIO interface if you do anything really tricky,
 though StringIO should support most everything.
 """
+
+
 def process_file(name, f):
     # note that debug info should be printed to stderr
     # sys.stderr.write('[process_file]\tprocessing file: %s\n' % (path))
     res = []
-    for line in f:
-        matches = re.findall(my_first_pat,line)
+    for line_any in f:
+        line = line_any.lower()
+        line = line.replace('-', '')
+        line = line.replace('&#x40;','@')
+        line = line.replace('&ldquo;',"\"")
+        line = line.replace('&rdquo;','\"')
+        line = line.replace(' dom ','.')
+        line = line.replace(' dot ','.')
+        line = line.replace(' dt ','.')
+        line = line.replace("(followed by \"",'')
+        if (line.find('server') != -1):
+            continue
+        if (line.find('jurafsky') != -1):
+            print(line )
+        matches = re.findall(my_first_pat, line)
         for m in matches:
-            email = '%s@%s.edu' % m
-            res.append((name,'e',email))
+            print(line)
+            print(m)
+            if (m[4] != ''):
+                email = '%s@%s.%s.%s' % (m[0], m[3], m[5], m[7])
+            else:
+                email = '%s@%s.%s' % (m[0], m[5], m[7])
+            res.append((name, 'e', email))
+            print(email)
+        matches = re.findall(phone, line_any)
+        for m in matches:
+            #print(line)
+            #print(m)
+            ph = "%s-%s-%s" % (m[0], m[2], m[4])
+            res.append((name, 'p', ph))
+            #print(ph)
     return res
 
 """
@@ -89,13 +122,13 @@ def score(guess_list, gold_list):
     #pp.pprint(guess_set)
     #print 'Gold (%d): ' % len(gold_set)
     #pp.pprint(gold_set)
-    print 'True Positives (%d): ' % len(tp)
+    print ('True Positives (%d): ' % len(tp))
     pp.pprint(tp)
-    print 'False Positives (%d): ' % len(fp)
+    print ('False Positives (%d): ' % len(fp))
     pp.pprint(fp)
-    print 'False Negatives (%d): ' % len(fn)
+    print ('False Negatives (%d): ' % len(fn))
     pp.pprint(fn)
-    print 'Summary: tp=%d, fp=%d, fn=%d' % (len(tp),len(fp),len(fn))
+    print ('Summary: tp=%d, fp=%d, fn=%d' % (len(tp),len(fp),len(fn)))
 
 """
 You should not need to edit this function.
@@ -118,5 +151,5 @@ if __name__ == '__main__':
     elif (len(sys.argv) == 3):
         main(sys.argv[1],sys.argv[2])
     else:
-        print 'usage:\tSpamLord.py <data_dir> <gold_file>'
+        print ('usage:\tSpamLord.py <data_dir> <gold_file>')
         sys.exit(0)
